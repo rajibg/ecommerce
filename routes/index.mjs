@@ -1,5 +1,3 @@
-import express from "express";
-const router = express.Router()
 import productRoute from './productRoute.mjs'
 import authRoute from './authRoute.mjs'
 import authHandler from "../middlewares/authHandler.mjs";
