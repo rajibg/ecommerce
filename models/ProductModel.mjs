@@ -1,4 +1,4 @@
-import { model, Schema } from "mongoose";
+import mongoose, { model, Schema } from "mongoose";
 const schema = new Schema({
     title: {
         type: String,
@@ -9,6 +9,7 @@ const schema = new Schema({
     author: {
         type: Schema.Types.ObjectId,
         index: true,
+        ref: 'users',
         required: true,
     },
     description: String,
@@ -27,5 +28,4 @@ const schema = new Schema({
     timestamps: true,
 })
 
-const ProductModel = model('product', schema)
-export default ProductModel
+export default model('product', schema)

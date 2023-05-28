@@ -11,15 +11,32 @@ export default function ErrorHandler(err, req, res) {
     if (process.env.NODE_ENV !== 'development') {
         console.log(err)
     }
-    if (name === 'TypeError' || name === 'ValidationError') {
-        statusCode = 400;
-        message = err.message
-    }
-    if (name === 'ValidationError' && err.details) {
-        for (let _err of err.details) {
-            errors[_err.context.key] = _err.message.replace(/['"]+/g, "");
-        }
-    }
 
+    switch (name) {
+        case 'TypeError':
+        case 'ValidationError':
+            statusCode = 400;
+            message = err.message
+            if (err.details) {
+                for (let _err of err.details) {
+                    errors[_err.context.key] = _err.message.replace(/['"]+/g, "");
+                }
+            }
+            break;
+        case 'JsonWebTokenError':
+            statusCode = 400;
+            message = messages.tokenError
+            break;
+        case 'MongoServerError':
+            statusCode = 400;
+            if (err.code === 11000) {
+                const keyValue = Object.keys(err.keyValue)
+                errors[keyValue[0]] = `${keyValue[0]} is already exist.`;
+            }
+
+            break;
+        default:
+            statusCode = 500;
+    }
     return res.status(statusCode).json({ error: !_.isEmpty(errors) ? errors : message });
 }

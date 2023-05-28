@@ -1,4 +1,6 @@
 import crypto from 'crypto'
+import path from 'path';
+import fs from 'fs'
 export function getClientIp(req) {
     let ip = '';
     if (req.headers['x-forwarded-for']) {
@@ -32,5 +34,22 @@ export function createDecryptToken(token) {
     return {
         token,
         decryptedToken
+    }
+}
+
+export async function fileUpload(file, uploadPath) {
+    if (!file || file.size <= 0) {
+        return null;
+    }
+    try {
+        const filename = crypto.randomBytes(10).toString('hex') + new Date().getTime() + path.extname(file.originalFilename)
+        const fileUploadPath = path.resolve('public', uploadPath)
+        if (!fs.existsSync(fileUploadPath)) {
+            await fs.promises.mkdir(fileUploadPath, { recursive: true })
+        }
+        await fs.promises.copyFile(file.path, fileUploadPath + '/' + filename)
+        return filename
+    } catch (err) {
+        throw err
     }
 }

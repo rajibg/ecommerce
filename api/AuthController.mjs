@@ -9,9 +9,11 @@ import moment from "moment/moment.js"
 import { getClientIp } from '../utils/common.mjs'
 import crypto from 'crypto'
 import { sendMail } from "../services/MailService.mjs"
+
+
 export const registration = async (req, res) => {
     const schema = Joi.object({
-        name: Joi.string().min(3).max(100).required(),
+        name: Joi.string().min(3).max(100).required().trim(),
         email: Joi.string().email().max(150).required().case('lower').trim().external(() => {
             return checkUniqueEmail(req.body.email)
         }),
@@ -22,7 +24,16 @@ export const registration = async (req, res) => {
     const model = new UserModel(validation)
     model.password = await model.createPassword(model.password)
     await model.save()
-    res.status(201).json({ user: model.toJSON({ password: -1 }) })
+    res.status(201).json({ user: _.pick(model.toJSON(), ['name', 'email', '_id']) })
+}
+
+export const authCheck = async (req, res) => {
+    return res.status(200).json({ user: req.user })
+}
+export const logout = async (req, res) => {
+    const token = req.headers['authorization'] ? req.headers['authorization'].split(' ')?.[1] : null
+    await SessionModel.deleteOne({ user: req.user._id, accessToken: token })
+    return res.status(200).json({ message: messages.logoutMsg })
 }
 
 export const login = async (req, res) => {
@@ -37,7 +48,7 @@ export const login = async (req, res) => {
     }
     const checkValidPassoword = await bcrypt.compare(validation.password, user.password)
     if (!checkValidPassoword) {
-        return res.status(400).json({ password: messages.passwordIncorrect });
+        return res.status(400).json({ error: { password: messages.passwordIncorrect } });
     }
     const userJson = _.pick(user.toJSON(), ['_id', 'name', 'email']);
 
@@ -54,7 +65,7 @@ export const login = async (req, res) => {
         httpOnly: true,
         maxAge: 1000 * 60 * 60 * 24 //1 day 
     })
-    return res.status(200).json({ newAccessToken, user: userJson })
+    return res.status(200).json({ token: newAccessToken, user: userJson })
 }
 
 export const forgotPassword = async (req, res) => {
@@ -68,7 +79,7 @@ export const forgotPassword = async (req, res) => {
     }
     const token = crypto.randomBytes(30).toString('hex');
     await sendMail({
-        to: 'drrajibg@gmail.com', username: user.name, subject: 'Reset Password', 'title': '', content: `<a href="${process.env.BASE_URL}/reset-password?token=${token}">Click here to Reset Password</a>`
+        to: user.email, username: user.name, subject: 'Reset Password', 'title': '', content: `<a href="${process.env.BASE_URL}/reset-password?token=${token}">Click here to Reset Password</a>`
     })
     user.resetToken = token
     user.resetTokenAt = moment().add(1, 'hour')
@@ -106,6 +117,22 @@ const checkUniqueEmail = async (email, id = null) => {
     const checkHasEmail = await UserModel.count(query)
 
     if (checkHasEmail > 0) {
-        throw new Error(messages.emailAlreadyUsed);
+        throw new Joi.ValidationError("string.email", [
+            {
+                message: messages.emailAlreadyUsed,
+                path: ["email"],
+                type: "string.email",
+                context: {
+                    key: "email",
+                    label: "email",
+                    email,
+                },
+            },
+        ],
+            email)
+
+        // throw new Error(JSON.stringify({
+        //     email: messages.emailAlreadyUsed
+        // }));
     }
 }

@@ -1,0 +1,13 @@
+.pagination__active {
+    background: #1726ca !important;
+    color: #fff !important;
+}
+
+.pagination__active:hover {
+    background: #686da2 !important;
+}
+
+.pagination__link--disabled {
+    opacity: 0.8;
+    cursor: not-allowed !important;
+}

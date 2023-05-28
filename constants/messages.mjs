@@ -12,4 +12,6 @@ export default {
     resetPasswordSent: 'Reset password sent to registered email.',
     passwordChanges: 'Password changes successfully',
     emailAlreadyUsed: 'This email has alreday in used.',
+    logoutMsg: 'You are successfuly logged out.',
+    tokenError: 'Authorised token is invalid.',
 }
